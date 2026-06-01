@@ -55,6 +55,6 @@ jobs:
           version: 1.8.0
       - run: poetry install --no-interaction
       - run: poetry build
-      - run: poetry publish --repository private-pypi
+      - run: poetry publish --repository wazobia
         env:
-          POETRY_PYPI_TOKEN_PRIVATE_PYPI: ${{ secrets.PRIVATE_PYPI_TOKEN }}
+          POETRY_PYPI_TOKEN_WAZOBIA: ${{ secrets.WAZOBIA_PYPI_TOKEN }}
