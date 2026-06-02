@@ -51,7 +51,10 @@ class HMACMiddleware(BaseHTTPMiddleware):
                 status_code=401,
             )
 
-        expected = _compute_signature(request.method, request.url.path, ts, self.hmac_secret)
+        path = request.url.path
+        if request.url.query:
+            path = f"{path}?{request.url.query}"
+        expected = _compute_signature(request.method, path, ts, self.hmac_secret)
         if not hmac.compare_digest(expected, sig):
             return JSONResponse(
                 {"error": "unauthorized", "reason": "signature mismatch"},
