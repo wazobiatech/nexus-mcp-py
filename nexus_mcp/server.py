@@ -1,0 +1,65 @@
+"""MCP server factory for FastAPI."""
+
+import logging
+from typing import Any
+
+from fastapi import FastAPI, HTTPException
+
+from nexus_mcp.middleware import HMACMiddleware
+from nexus_mcp.models import Manifest, MCPToolDefinition
+
+logger = logging.getLogger(__name__)
+
+
+def create_mcp_server(
+    port: int,
+    hmac_secret: str,
+    manifest: Manifest,
+    tools: list[MCPToolDefinition],
+) -> FastAPI:
+    """Create a FastAPI application with HMAC protection and MCP endpoints.
+
+    Args:
+        port: Port number (logged at startup, not bound here).
+            Bind with ``uvicorn.run(app, host="0.0.0.0", port=port)``.
+        hmac_secret: Shared symmetric key for HMAC verification.
+        manifest: Service manifest.
+        tools: Tool definitions. Each tool's ``handler`` field must be set
+            to a coroutine that accepts ``dict[str, Any]`` and returns
+            ``dict[str, Any]``.
+
+    Returns:
+        Configured FastAPI application.
+    """
+    logger.info("Creating MCP server on port %d with %d tools", port, len(tools))
+    app = FastAPI(title="Nexus MCP Server", version=manifest.version)
+
+    app.add_middleware(HMACMiddleware, hmac_secret=hmac_secret)
+
+    @app.get("/health")
+    async def health() -> dict[str, str]:
+        """K8s liveness probe — exempt from HMAC."""
+        return {"status": "ok"}
+
+    @app.get("/mcp/manifest")
+    async def get_manifest() -> Manifest:
+        """Return the service manifest (tools list without handlers)."""
+        return manifest
+
+    @app.post("/mcp/call")
+    async def call_tool(body: dict[str, Any]) -> dict[str, Any]:
+        """Invoke a named tool with the supplied arguments."""
+        tool_name = body.get("tool")
+        arguments = body.get("arguments", {})
+
+        tool = next((t for t in tools if t.name == tool_name), None)
+        if tool is None:
+            raise HTTPException(status_code=404, detail=f"tool not found: {tool_name}")
+
+        if not callable(tool.handler):
+            raise HTTPException(status_code=501, detail=f"tool has no handler: {tool_name}")
+
+        result = await tool.handler(arguments)
+        return {"result": result}
+
+    return app

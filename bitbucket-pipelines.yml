@@ -1,0 +1,38 @@
+image: python:3.12-slim
+
+definitions:
+  steps:
+    - step: &test
+        name: Lint & Test
+        caches:
+          - pip
+        script:
+          - python3 -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/wazobiatech/nexus-mcp-contract/v1.0.0/vectors.json','vectors.json')"
+          - pip install poetry==1.8.0
+          - poetry install --no-interaction
+          - poetry run ruff check nexus_mcp tests
+          - poetry run pytest -v
+
+pipelines:
+  default:
+    - step: *test
+
+  branches:
+    main:
+      - step: *test
+
+  tags:
+    v*:
+      - step: *test
+      - step:
+          name: Publish to private PyPI
+          deployment: production
+          caches:
+            - pip
+          script:
+            - pip install poetry==1.8.0
+            - poetry install --no-interaction
+            - poetry config repositories.wazobia $WAZOBIA_PYPI_URL
+            - poetry config pypi-token.wazobia $WAZOBIA_PYPI_TOKEN
+            - poetry build
+            - poetry publish --repository wazobia
