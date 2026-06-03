@@ -1,8 +1,8 @@
 # ZIN-4662 — wazobiatech-nexus-mcp (Python SDK) Handoff
 
-## Status: COMPLETED
+## Status: 🔍 Review
 
-All blockers and noted issues resolved. PR is ready to merge.
+Blocking PR review issues resolved. Deferred design decisions documented below.
 
 ---
 
@@ -57,4 +57,13 @@ All blockers and noted issues resolved. PR is ready to merge.
 
 ---
 
-## Nothing Left
+## Open / Deferred (not blockers)
+
+- **Body not signed**: `POST /mcp/call` arguments aren't covered by HMAC. Replay possible within 300s window. Acceptable for internal mesh — needs explicit decision in contract if intentional.
+- **No server-side inputSchema validation**: arguments passed straight to handler. Could validate against `input_schema` cheaply since Pydantic is already a dependency.
+- **`.pypirc` history**: if `.pypirc` ever held a real token in a prior commit, rotate the credential — `git rm` doesn't purge git history.
+
+## Before Tagging
+
+1. Set `WAZOBIA_PYPI_URL` and `WAZOBIA_PYPI_TOKEN` as Bitbucket repo variables.
+2. Tag `v1.0.0` and push — Bitbucket pipeline will run lint → test → publish automatically.

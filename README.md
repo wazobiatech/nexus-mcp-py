@@ -5,7 +5,7 @@ Python SDK for the Nexus MCP ecosystem. Provides HMAC signing/verification and M
 ## Installation
 
 ```bash
-pip install wazobiatech-nexus-mcp
+pip install wazobiatech-nexus-mcp==1.0.0
 ```
 
 ## Usage
