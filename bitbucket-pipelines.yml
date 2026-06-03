@@ -10,8 +10,7 @@ definitions:
           - pip install poetry==1.8.0
           - poetry install --no-interaction
           - poetry run ruff check nexus_mcp tests
-          - git clone --depth 1 git@bitbucket.org:wazobiatech/nexus-mcp-contract.git ../nexus-mcp-contract
-          - cp ../nexus-mcp-contract/vectors.json vectors.json
+          - python3 -c "import urllib.request,os; req=urllib.request.Request('https://api.bitbucket.org/2.0/repositories/wazobiatech/nexus-mcp-contract/src/HEAD/vectors.json',headers={'Authorization':'Bearer '+os.environ['BITBUCKET_TOKEN']}); open('vectors.json','wb').write(urllib.request.urlopen(req).read())"
           - poetry run pytest -v
 
 pipelines:
