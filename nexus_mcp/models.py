@@ -6,6 +6,9 @@ from typing import Any
 from pydantic import BaseModel, Field
 from pydantic.json_schema import SkipJsonSchema
 
+# Type alias keeps the handler field declaration under the 100-char line limit.
+HandlerFn = SkipJsonSchema[Callable[..., Awaitable[Any]] | None]
+
 
 class ToolAnnotation(BaseModel):
     """Optional behavioural annotations for a tool."""
@@ -32,7 +35,7 @@ class MCPToolDefinition(BaseModel):
     # Handler is excluded from JSON/OpenAPI output — never appears in manifest or wire format.
     # SkipJsonSchema prevents PydanticInvalidForJsonSchema when model_json_schema() is called
     # directly (FastAPI's tolerant path hides this; direct calls would blow up without it).
-    handler: SkipJsonSchema[Callable[..., Awaitable[Any]] | None] = Field(default=None, exclude=True)
+    handler: HandlerFn = Field(default=None, exclude=True)
 
     model_config = {"populate_by_name": True, "arbitrary_types_allowed": True}
 
@@ -46,7 +49,6 @@ class ManifestContext(BaseModel):
     bounded_context: str
     key_entities: list[str]
     aggregates: list[str]
-
 
 
 class Manifest(BaseModel):
