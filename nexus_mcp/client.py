@@ -24,10 +24,14 @@ class HMACClient:
         return {"x-signature": sig, "x-timestamp": ts}
 
     async def get(self, path: str, **kwargs) -> httpx.Response:
-        return await self._client.get(path, headers=self._auth_headers("GET", path), **kwargs)
+        headers = {**kwargs.pop("headers", {}), **self._auth_headers("GET", path)}
+        return await self._client.get(path, headers=headers, **kwargs)
 
     async def post(self, path: str, **kwargs) -> httpx.Response:
-        return await self._client.post(path, headers=self._auth_headers("POST", path), **kwargs)
+        # Merge caller-supplied headers with HMAC auth headers.
+        # HMAC headers take precedence so they can never be spoofed by the caller.
+        headers = {**kwargs.pop("headers", {}), **self._auth_headers("POST", path)}
+        return await self._client.post(path, headers=headers, **kwargs)
 
     async def aclose(self) -> None:
         await self._client.aclose()
