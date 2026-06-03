@@ -1,4 +1,9 @@
-"""Contract vector tests for HMAC signing."""
+"""Contract vector tests for HMAC signing.
+
+These tests exercise the **production** ``sign_request`` function against
+vectors.json from nexus-mcp-contract. A private reimplementation is NOT used
+so that any drift in the real signer is caught here.
+"""
 
 import json
 import pathlib
@@ -22,21 +27,15 @@ def _load_vectors():
 VECTORS = _load_vectors()
 
 
-def _sign_with_timestamp(method: str, path: str, secret: str, timestamp: str) -> str:
-    import hmac
-    import hashlib
-
-    payload = (method.upper() + path + timestamp).encode("utf-8")
-    return hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
-
-
 @pytest.mark.parametrize("vector", VECTORS, ids=lambda v: v["id"])
 def test_contract_vector(vector):
+    """Production sign_request must match every contract vector."""
     expected = vector["expected"]["x-signature"]
-    got = _sign_with_timestamp(
+    # Use the real sign_request with the fixed timestamp from the vector.
+    got, _ = sign_request(
         vector["input"]["method"],
         vector["input"]["path"],
         vector["input"]["secret"],
-        vector["input"]["timestamp"],
+        _timestamp=vector["input"]["timestamp"],
     )
     assert got == expected, f"{vector['id']} — {vector['description']}"

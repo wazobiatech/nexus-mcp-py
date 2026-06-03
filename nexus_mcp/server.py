@@ -1,11 +1,14 @@
 """MCP server factory for FastAPI."""
 
-from typing import Any, Callable, Awaitable
+import logging
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 
 from nexus_mcp.middleware import HMACMiddleware
 from nexus_mcp.models import Manifest, MCPToolDefinition
+
+logger = logging.getLogger(__name__)
 
 
 def create_mcp_server(
@@ -18,29 +21,34 @@ def create_mcp_server(
 
     Args:
         port: Port number (logged at startup, not bound here).
+            Bind with ``uvicorn.run(app, host="0.0.0.0", port=port)``.
         hmac_secret: Shared symmetric key for HMAC verification.
         manifest: Service manifest.
-        tools: List of tool definitions. Each tool must have a callable ``handler``.
+        tools: Tool definitions. Each tool's ``handler`` field must be set
+            to a coroutine that accepts ``dict[str, Any]`` and returns
+            ``dict[str, Any]``.
 
     Returns:
-        Configured FastAPI application. Start with uvicorn::
-
-            uvicorn.run(app, host="0.0.0.0", port=port)
+        Configured FastAPI application.
     """
+    logger.info("Creating MCP server on port %d with %d tools", port, len(tools))
     app = FastAPI(title="Nexus MCP Server", version=manifest.version)
 
     app.add_middleware(HMACMiddleware, hmac_secret=hmac_secret)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
+        """K8s liveness probe — exempt from HMAC."""
         return {"status": "ok"}
 
     @app.get("/mcp/manifest")
     async def get_manifest() -> Manifest:
+        """Return the service manifest (tools list without handlers)."""
         return manifest
 
     @app.post("/mcp/call")
     async def call_tool(body: dict[str, Any]) -> dict[str, Any]:
+        """Invoke a named tool with the supplied arguments."""
         tool_name = body.get("tool")
         arguments = body.get("arguments", {})
 
@@ -48,7 +56,7 @@ def create_mcp_server(
         if tool is None:
             raise HTTPException(status_code=404, detail=f"tool not found: {tool_name}")
 
-        if not callable(getattr(tool, "handler", None)):
+        if not callable(tool.handler):
             raise HTTPException(status_code=501, detail=f"tool has no handler: {tool_name}")
 
         result = await tool.handler(arguments)

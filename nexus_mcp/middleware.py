@@ -1,8 +1,8 @@
 """FastAPI/Starlette HMAC middleware."""
 
-import time
-import hmac
 import hashlib
+import hmac
+import time
 from typing import Awaitable, Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
