@@ -28,8 +28,8 @@ Select all that apply:
 - `nexus_mcp/server.py` — `create_mcp_server()` FastAPI factory with HMAC middleware wired
 - `tests/test_hmac_utils.py` — contract vector test suite (16 vectors from `nexus-mcp-contract v1.0.0`)
 - `tests/test_middleware.py` — unit tests for valid ✅ / bad sig ❌ / stale ❌ / missing headers ❌
-- `.github/workflows/ci.yml` — ruff lint, contract vectors, pytest, and Poetry publish to private PyPI on tag
-- `.pypirc` — configured for `https://pypi.wazobiatech.com/simple`
+- `bitbucket-pipelines.yml` — ruff lint, contract vectors, pytest, and Poetry publish to private PyPI on `v*` tag (`.github/workflows/ci.yml` deleted — this repo lives on Bitbucket)
+- `.pypirc` — removed from repo; added to `.gitignore`; CI uses `WAZOBIA_PYPI_TOKEN` + `WAZOBIA_PYPI_URL` Bitbucket repo variables
 
 ---
 

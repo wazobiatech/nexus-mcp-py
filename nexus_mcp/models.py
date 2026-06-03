@@ -1,7 +1,10 @@
 """Pydantic models aligned with nexus-mcp-contract schemas."""
 
-from typing import Any, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from pydantic import BaseModel, Field
+from pydantic.json_schema import SkipJsonSchema
 
 
 class ToolAnnotation(BaseModel):
@@ -26,8 +29,10 @@ class MCPToolDefinition(BaseModel):
     description: str = Field(min_length=20)
     input_schema: dict[str, Any] = Field(alias="inputSchema")
     annotations: ToolAnnotation | None = None
-    # Handler is excluded from JSON output — never appears in manifest or wire format.
-    handler: Callable[..., Awaitable[Any]] | None = Field(default=None, exclude=True)
+    # Handler is excluded from JSON/OpenAPI output — never appears in manifest or wire format.
+    # SkipJsonSchema prevents PydanticInvalidForJsonSchema when model_json_schema() is called
+    # directly (FastAPI's tolerant path hides this; direct calls would blow up without it).
+    handler: SkipJsonSchema[Callable[..., Awaitable[Any]] | None] = Field(default=None, exclude=True)
 
     model_config = {"populate_by_name": True, "arbitrary_types_allowed": True}
 
@@ -42,7 +47,6 @@ class ManifestContext(BaseModel):
     key_entities: list[str]
     aggregates: list[str]
 
-    model_config = {"populate_by_name": True}
 
 
 class Manifest(BaseModel):

@@ -2,17 +2,7 @@ image: python:3.12-slim
 
 definitions:
   steps:
-    - step: &install
-        name: Install dependencies
-        caches:
-          - pip
-        script:
-          - pip install poetry==1.8.0
-          - poetry install --no-interaction
-
-pipelines:
-  default:
-    - step:
+    - step: &test
         name: Lint & Test
         caches:
           - pip
@@ -24,41 +14,26 @@ pipelines:
               https://raw.githubusercontent.com/wazobiatech/nexus-mcp-contract/v1.0.0/vectors.json
           - poetry run pytest -v
 
+pipelines:
+  default:
+    - step: *test
+
   branches:
     main:
-      - step:
-          name: Lint & Test
-          caches:
-            - pip
-          script:
-            - pip install poetry==1.8.0
-            - poetry install --no-interaction
-            - poetry run ruff check nexus_mcp tests
-            - curl -L -o vectors.json
-                https://raw.githubusercontent.com/wazobiatech/nexus-mcp-contract/v1.0.0/vectors.json
-            - poetry run pytest -v
+      - step: *test
 
   tags:
     v*:
-      - step:
-          name: Lint & Test
-          caches:
-            - pip
-          script:
-            - pip install poetry==1.8.0
-            - poetry install --no-interaction
-            - poetry run ruff check nexus_mcp tests
-            - curl -L -o vectors.json
-                https://raw.githubusercontent.com/wazobiatech/nexus-mcp-contract/v1.0.0/vectors.json
-            - poetry run pytest -v
+      - step: *test
       - step:
           name: Publish to private PyPI
           deployment: production
+          caches:
+            - pip
           script:
             - pip install poetry==1.8.0
             - poetry install --no-interaction
             - poetry config repositories.wazobia $WAZOBIA_PYPI_URL
+            - poetry config pypi-token.wazobia $WAZOBIA_PYPI_TOKEN
             - poetry build
             - poetry publish --repository wazobia
-          after-script:
-            - echo "Published wazobiatech-nexus-mcp $(poetry version -s)"
