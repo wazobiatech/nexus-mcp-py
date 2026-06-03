@@ -26,7 +26,13 @@ class HMACMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.hmac_secret = hmac_secret
 
+    # Paths exempt from HMAC — kubelet probes don't send signed requests
+    _UNPROTECTED = {"/health", "/health/live", "/health/ready"}
+
     async def dispatch(self, request: Request, call_next):
+        if request.url.path in self._UNPROTECTED:
+            return await call_next(request)
+
         sig = request.headers.get(_HEADER_SIGNATURE)
         ts = request.headers.get(_HEADER_TIMESTAMP)
 
